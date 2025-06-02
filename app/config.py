@@ -5,7 +5,6 @@ from pydantic_settings import BaseSettings
 
 
 def get_project_metadata() -> dict[str, str]:
-    """Returns project metadata."""
     return {
         "title": "Data Processing API",
         "description": "A FastAPI application for data processing tasks.",
@@ -36,7 +35,6 @@ class Settings(BaseSettings):
         min_length=32,
     )
 
-    # Server configuration
     app_host: str = Field(default="0.0.0.0", env="APP_HOST")
     app_port: int = Field(default=8000, env="APP_PORT")
     app_reload: bool = Field(default=False, env="APP_RELOAD")
