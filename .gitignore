@@ -1,4 +1,5 @@
 !.pre-commit-config.yaml
 !docker-compose.yml
 !Dockerfile
-.env
+!.env
+__pycache__

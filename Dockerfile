@@ -1,27 +1,11 @@
 FROM python:3.12-alpine
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    POETRY_NO_INTERACTION=1 \
-    POETRY_VENV_IN_PROJECT=1 \
-    POETRY_CACHE_DIR=/tmp/poetry_cache
+WORKDIR /code
 
-RUN apk update && apk upgrade && apk add --no-cache \
-    build-base \
-    postgresql-dev \
-    gcc \
-    musl-dev
+COPY ./requirements.txt /code/requirements.txt
 
-RUN pip install poetry
+RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
-WORKDIR /app
+COPY ./app /code/app
 
-COPY pyproject.toml poetry.lock* ./
-
-RUN poetry install --no-dev && rm -rf $POETRY_CACHE_DIR
-
-COPY . .
-
-EXPOSE 8000
-
-CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["fastapi", "run", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
