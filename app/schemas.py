@@ -32,6 +32,7 @@ class UploadResponse(BaseModel):
     processed_count: int
     error_count: int
     errors: list[str] = []
+    warnings: list[str] = []
 
 
 class TransactionBase(BaseModel):

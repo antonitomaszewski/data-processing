@@ -1,9 +1,12 @@
 from typing import Optional
 
-from fastapi import FastAPI, File, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from sqlalchemy.orm import Session
 
 from app.config import project_metadata, settings
-from app.database import init_db
+from app.database import get_db, init_db
+from app.schemas import UploadResponse
+from app.services import CSVProcessor
 
 app = FastAPI(
     title=project_metadata["title"],
@@ -43,13 +46,29 @@ async def health_check():
         return {"status": "degraded", "database": f"error: {e}"}
 
 
-@app.post("/transactions/upload")
-async def upload_transactions(file: UploadFile = File(...)):
-    return {
-        "message": "CSV upload endpoint - dummy implementation",
-        "filename": file.filename,
-        "content_type": file.content_type,
-    }
+@app.post("/transactions/upload", response_model=UploadResponse)
+async def upload_transactions(
+    file: UploadFile = File(...), db: Session = Depends(get_db)
+) -> UploadResponse:
+    if file.content_type not in ["text/csv", "application/csv"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Expected CSV, got {file.content_type}",
+        )
+    if not file.filename or not file.filename.lower().endswith(".csv"):
+        raise HTTPException(
+            status_code=400, detail="File must have .csv extension"
+        )
+
+    try:
+        processor = CSVProcessor(db)
+        result = processor.process_csv_file(file)
+        return result
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error processing file: {str(e)}"
+        )
 
 
 @app.get("/transactions")
