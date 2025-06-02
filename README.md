@@ -1,26 +1,19 @@
 # data-processing
 alterdata.io
 
-docker-compose up -d --builddocker-compose exec app alembic upgrade head
-
 Na co będziemy zwracać uwagę:
 
-1. Jakość kodu: Czystość, czytelność, zgodność z PEP8, dobre praktyki (np. SOLID w miarę możliwości).
+1. dobre praktyki (np. SOLID w miarę możliwości).
 2. Architektura i projekt rozwiązania: Logiczny podział na komponenty, przemyślana struktura.
 3. Testy: Pokrycie kodu testami (jednostkowymi, integracyjnymi) jest bardzo ważne. Użyj pytest.
 4. Obsługa błędów i przypadków brzegowych: Jak Twoje rozwiązanie radzi sobie z nieoczekiwanymi danymi lub sytuacjami.
 5. Dokumentacja: Krótki opis rozwiązania w pliku README.md (jak uruchomić, jakie decyzje projektowe podjąłeś, ewentualne kompromisy).
-6. Użycie narzędzi: Poprawne wykorzystanie Gita, Dockera.
 
 Wymagania techniczne:
 
-1. Język: Python 3.10+
-2. Framework webowy: FastAPI lub Django (wybierz ten, w którym czujesz się pewniej).
-3. Baza danych: PostgreSQL lub SQLite (wybierz ten, w którym czujesz się pewniej).
-4. ORM: SQLAlchemy (dla FastAPI) lub Django ORM.
-5. Kontrola wersji: Git. Prześlij nam link do repozytorium (np. GitHub, GitLab).
-6. Konteneryzacja: Prosimy o przygotowanie Dockerfile oraz docker-compose.yml do łatwego uruchomienia aplikacji i jej zależności (np. bazy danych).
-7. Testy: pytest.
+
+1. ORM: SQLAlchemy (dla FastAPI).
+2. Testy: pytest.
 
 ZADANIE : System Przetwarzania i Agregacji Danych o Transakcjach
 - Kontekst: Firma Z analizuje duże ilości danych transakcyjnych pochodzących z różnych systemów. Potrzebujemy narzędzia backendowego, które pozwoli na importowanie danych o transakcjach, ich walidację, proste przetwarzanie oraz udostępnianie zagregowanych wyników poprzez API.
@@ -46,10 +39,7 @@ Wymagania:
 --> Całkowity przychód wygenerowany przez produkt (w PLN, jak wyżej).
 --> Liczba unikalnych klientów, którzy kupili ten produkt.
 
-4. Technologie:
-- Python 3.10+, FastAPI/Django, PostgreSQL lub SQLite, SQLAlchemy/Django ORM, Pytest, Docker.
-
-5. Co będzie dodatkowym atutem (Bonus):
+1. Co będzie dodatkowym atutem (Bonus):
 - Asynchroniczne przetwarzanie importu pliku CSV (np. z użyciem Celery lub mechanizmów async FastAPI).
 - Obsługa błędów i logowanie na produkcyjnym poziomie.
 - Prosty mechanizm uwierzytelniania API (np. token w nagłówku).
