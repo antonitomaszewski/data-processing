@@ -1,7 +1,6 @@
 # data-processing
 alterdata.io
 
-
 Na co będziemy zwracać uwagę:
 
 1. Jakość kodu: Czystość, czytelność, zgodność z PEP8, dobre praktyki (np. SOLID w miarę możliwości).

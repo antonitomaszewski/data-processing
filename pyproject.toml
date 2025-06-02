@@ -10,7 +10,7 @@ authors = ["Antoni Tomaszewski <antek.tomaszewski@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.12"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
