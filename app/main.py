@@ -1,4 +1,6 @@
-from fastapi import FastAPI
+from typing import Optional
+
+from fastapi import FastAPI, File, UploadFile
 
 from app.config import project_metadata, settings
 
@@ -21,6 +23,74 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+
+@app.post("/transactions/upload")
+async def upload_transactions(file: UploadFile = File(...)):
+    return {
+        "message": "CSV upload endpoint - dummy implementation",
+        "filename": file.filename,
+        "content_type": file.content_type,
+    }
+
+
+@app.get("/transactions")
+async def get_transactions(
+    page: int = 1,
+    size: int = 50,
+    customer_id: Optional[str] = None,
+    product_id: Optional[str] = None,
+    currency: Optional[str] = None,
+):
+    return {
+        "message": "Get transactions endpoint - dummy implementation",
+        "filters": {
+            "page": page,
+            "size": size,
+            "customer_id": customer_id,
+            "product_id": product_id,
+            "currency": currency,
+        },
+        "data": [],
+    }
+
+
+@app.get("/transactions/{transaction_id}")
+async def get_transaction(transaction_id: str):
+    return {
+        "message": "Get transaction by ID endpoint - dummy implementation",
+        "transaction_id": transaction_id,
+        "data": None,
+    }
+
+
+@app.get("/reports/customer-summary/{customer_id}")
+async def get_customer_summary(customer_id: str):
+    return {
+        "message": "Customer summary endpoint - dummy implementation",
+        "customer_id": customer_id,
+        "summary": {
+            "total_transactions": 0,
+            "total_amount_pln": 0.0,
+            "currencies_used": [],
+            "date_range": None,
+        },
+    }
+
+
+@app.get("/reports/product-summary/{product_id}")
+async def get_product_summary(product_id: str):
+    return {
+        "message": "Product summary endpoint - dummy implementation",
+        "product_id": product_id,
+        "summary": {
+            "total_transactions": 0,
+            "total_amount_pln": 0.0,
+            "unique_customers": 0,
+            "currencies_used": [],
+            "date_range": None,
+        },
+    }
 
 
 if __name__ == "__main__":
