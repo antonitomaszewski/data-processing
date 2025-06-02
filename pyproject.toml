@@ -1,0 +1,19 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "data-processing"
+version = "0.1.0"
+description = "System Przetwarzania i Agregacji Danych o Transakcjach"
+authors = ["Antoni Tomaszewski <antek.tomaszewski@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+[tool.poetry.group.dev.dependencies]
+black = "^25.1.0"
+isort = "^6.0.1"
+flake8 = "^7.2.0"
+pre-commit = "^4.2.0"
