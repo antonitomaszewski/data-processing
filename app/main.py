@@ -3,6 +3,7 @@ from typing import Optional
 from fastapi import FastAPI, File, UploadFile
 
 from app.config import project_metadata, settings
+from app.database import init_db
 
 app = FastAPI(
     title=project_metadata["title"],
@@ -10,6 +11,14 @@ app = FastAPI(
     version=project_metadata["version"],
     debug=settings.debug,
 )
+
+
+@app.on_event("startup")
+async def startup_event():
+    init_db()
+
+
+# app.include_router(router)
 
 
 @app.get("/")
@@ -22,7 +31,16 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    try:
+        from sqlalchemy import text
+
+        from app.database import engine
+
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"status": "healthy", "database": "connected"}
+    except Exception as e:
+        return {"status": "degraded", "database": f"error: {e}"}
 
 
 @app.post("/transactions/upload")
