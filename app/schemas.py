@@ -59,3 +59,11 @@ class TransactionResponse(TransactionBase):
 
     class Config:
         from_attributes = True
+
+
+class TransactionListResponse(BaseModel):
+    data: list[UUID]
+    total: int
+    page: int
+    size: int
+    pages: int

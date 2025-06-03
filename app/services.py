@@ -9,9 +9,17 @@ from sqlalchemy.orm import Session
 
 from app.constants import COLUMNS, CurrencyEnum
 from app.models import Transaction
-from app.schemas import TransactionCreate, UploadResponse
+from app.schemas import TransactionCreate, TransactionResponse, UploadResponse
 
 logger = logging.getLogger(__name__)
+
+
+def is_valid_uuid(value: str) -> bool:
+    try:
+        uuid.UUID(value)
+        return True
+    except ValueError:
+        return False
 
 
 class RowProcessor:
@@ -91,11 +99,7 @@ class RowProcessor:
             return False
 
     def _is_valid_uuid(self, value):
-        try:
-            uuid.UUID(value)
-            return True
-        except ValueError:
-            return False
+        return is_valid_uuid(value)
 
     def save(self, db):
         transaction = TransactionCreate(
@@ -156,3 +160,32 @@ class CSVProcessor:
             self.total_errors += 1
             self.errors.append(f'Row {i} errors: {",".join(row.errors)}')
         self.processed_count
+
+
+def get_transactions(
+    db: Session,
+    page: int,
+    size: int,
+    customer_id: str | None = None,
+    product_id: str | None = None,
+) -> tuple[list[TransactionResponse], int]:
+    query = db.query(Transaction)
+
+    if customer_id:
+        query = query.filter(Transaction.customer_id == customer_id)
+    if product_id:
+        query = query.filter(Transaction.product_id == product_id)
+
+    total = query.count()
+
+    offset = (page - 1) * size
+    transactions = (
+        query.order_by(Transaction.timestamp.desc())
+        .offset(offset)
+        .limit(size)
+        .all()
+    )
+
+    response_data = [t.transaction_id for t in transactions]
+
+    return response_data, total

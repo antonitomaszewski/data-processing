@@ -1,12 +1,13 @@
+import math
 from typing import Optional
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
+import app.services as services
 from app.config import settings
 from app.database import get_db, init_db
-from app.schemas import UploadResponse
-from app.services import CSVProcessor
+from app.schemas import TransactionListResponse, UploadResponse
 
 app = FastAPI(
     debug=settings.debug,
@@ -58,7 +59,7 @@ def upload_transactions(
         )
 
     try:
-        processor = CSVProcessor(db)
+        processor = services.CSVProcessor(db)
         result = processor.process_file(file)
         return result
 
@@ -68,25 +69,37 @@ def upload_transactions(
         )
 
 
-@app.get("/transactions")
+@app.get("/transactions", response_model=TransactionListResponse)
 async def get_transactions(
     page: int = 1,
     size: int = 50,
     customer_id: Optional[str] = None,
     product_id: Optional[str] = None,
-    currency: Optional[str] = None,
-):
-    return {
-        "message": "Get transactions endpoint - dummy implementation",
-        "filters": {
-            "page": page,
-            "size": size,
-            "customer_id": customer_id,
-            "product_id": product_id,
-            "currency": currency,
-        },
-        "data": [],
-    }
+    db: Session = Depends(get_db),
+) -> TransactionListResponse:
+    if page < 1 or size < 1 or size > 100:
+        raise HTTPException(status_code=400, detail="Invalid pagination")
+
+    if customer_id and not services.is_valid_uuid(customer_id):
+        raise HTTPException(
+            status_code=400, detail="Invalid customer_id format"
+        )
+    if product_id and not services.is_valid_uuid(product_id):
+        raise HTTPException(
+            status_code=400, detail="Invalid product_id format"
+        )
+
+    transactions, total = services.get_transactions(
+        db, page, size, customer_id, product_id
+    )
+
+    return TransactionListResponse(
+        data=transactions,
+        total=total,
+        page=page,
+        size=size,
+        pages=math.ceil(total / size),
+    )
 
 
 @app.get("/transactions/{transaction_id}")
