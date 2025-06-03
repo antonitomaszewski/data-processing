@@ -145,8 +145,7 @@ class CSVProcessor:
         reader = csv.reader(io.StringIO(decoded))
         for i, row_data in enumerate(reader):
             normalized = tuple(col.strip().lower() for col in row_data)
-            expected = tuple(col.lower() for col in constants.COLUMNS)
-            if i == 0 and normalized != expected:
+            if i == 0 and normalized != constants.COLUMNS:
                 self.errors.append(f"Invalid CSV header: {row_data}")
                 break
             elif i != 0:

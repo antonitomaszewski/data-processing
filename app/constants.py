@@ -14,7 +14,7 @@ EXCHANGE_RATES = {
 }
 
 
-COLUMNS = [
+COLUMNS = (
     "transaction_id",
     "timestamp",
     "amount",
@@ -22,4 +22,4 @@ COLUMNS = [
     "customer_id",
     "product_id",
     "quantity",
-]
+)
