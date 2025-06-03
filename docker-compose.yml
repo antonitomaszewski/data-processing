@@ -1,10 +1,11 @@
 services:
   db:
+    container_name: db
     image: postgres:15-alpine
     env_file: .env
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgresAdd commentMore actions
+      - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=app_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -16,6 +17,7 @@ services:
       timeout: 5s
       retries: 5
   app:
+    container_name: app
     build: .
     ports:
       - "8000:8000"
@@ -34,6 +36,7 @@ services:
       retries: 3
 
   pgadmin:
+    container_name: alterdata_pgadmin
     image: dpage/pgadmin4
     env_file: .env
     environment:
