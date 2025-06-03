@@ -189,3 +189,17 @@ def get_transactions(
     response_data = [t.transaction_id for t in transactions]
 
     return response_data, total
+
+
+def get_transaction_by_id(
+    db: Session, transaction_id: str
+) -> TransactionResponse | None:
+    transaction = (
+        db.query(Transaction)
+        .filter(Transaction.transaction_id == transaction_id)
+        .first()
+    )
+    if not transaction:
+        return None
+        # raise HTTPException(status_code=404, detail="Transaction not found")
+    return TransactionResponse.from_orm(transaction)

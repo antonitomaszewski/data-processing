@@ -7,7 +7,11 @@ from sqlalchemy.orm import Session
 import app.services as services
 from app.config import settings
 from app.database import get_db, init_db
-from app.schemas import TransactionListResponse, UploadResponse
+from app.schemas import (
+    TransactionListResponse,
+    TransactionResponse,
+    UploadResponse,
+)
 
 app = FastAPI(
     debug=settings.debug,
@@ -102,13 +106,21 @@ async def get_transactions(
     )
 
 
-@app.get("/transactions/{transaction_id}")
-async def get_transaction(transaction_id: str):
-    return {
-        "message": "Get transaction by ID endpoint - dummy implementation",
-        "transaction_id": transaction_id,
-        "data": None,
-    }
+@app.get("/transactions/{transaction_id}", response_model=TransactionResponse)
+async def get_transaction(
+    transaction_id: str, db: Session = Depends(get_db)
+) -> TransactionResponse:
+    if not services.is_valid_uuid(transaction_id):
+        raise HTTPException(
+            status_code=400, detail="Invalid transaction_id format"
+        )
+
+    transaction = services.get_transaction_by_id(db, transaction_id)
+
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+
+    return transaction
 
 
 @app.get("/reports/customer-summary/{customer_id}")

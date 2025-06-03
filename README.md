@@ -18,11 +18,7 @@ ZADANIE : System Przetwarzania i Agregacji Danych o Transakcjach
 
 Wymagania:
 
-2. API do Pobierania Danych:
-- Zaimplementuj endpoint API (GET /transactions) do pobierania listy transakcji z możliwością paginacji oraz filtrowania po customer_id i product_id.
-- Zaimplementuj endpoint API (GET /transactions/{transaction_id}) do pobierania szczegółów pojedynczej transakcji.
-
-3. Agregacja Danych:
+1. Agregacja Danych:
 - Zaimplementuj endpoint API (GET /reports/customer-summary/{customer_id}), który zwróci podsumowanie dla danego klienta:
 - Całkowita kwota wydana przez klienta (w PLN – jeśli transakcje są w innych walutach, załóż stały, uproszczony kurs wymiany np. 1 EUR = 4.3 PLN, 1 USD = 4.0 PLN).
 - Liczba unikalnych produktów zakupionych przez klienta.
