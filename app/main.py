@@ -3,15 +3,12 @@ from typing import Optional
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
-from app.config import project_metadata, settings
+from app.config import settings
 from app.database import get_db, init_db
 from app.schemas import UploadResponse
 from app.services import CSVProcessor
 
 app = FastAPI(
-    title=project_metadata["title"],
-    description=project_metadata["description"],
-    version=project_metadata["version"],
     debug=settings.debug,
 )
 

@@ -7,3 +7,4 @@ pydantic-settings==2.5.2
 python-multipart==0.0.12
 pandas==2.2.3
 ipdb==0.13.13
+python-pdb==0.1.3

@@ -36,13 +36,10 @@ class CSVProcessor:
         processed_count = 0
         errors = []
         warnings = []
-        # import pdb; ipdb.set_trace()
 
         try:
             chunk_iter = pd.read_csv(
-                BytesIO(file.file.read()),
-                chunksize=self.BATCH_SIZE,
-                dtype=str,
+                BytesIO(file.file.read()), chunksize=self.BATCH_SIZE, dtype=str
             )
 
             for chunk_num, chunk in enumerate(chunk_iter):
