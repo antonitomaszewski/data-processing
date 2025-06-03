@@ -12,3 +12,14 @@ EXCHANGE_RATES = {
     CurrencyEnum.EUR: 4.3,
     CurrencyEnum.USD: 4.0,
 }
+
+
+COLUMNS = [
+    "transaction_id",
+    "timestamp",
+    "amount",
+    "currency",
+    "customer_id",
+    "product_id",
+    "quantity",
+]

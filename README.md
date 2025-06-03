@@ -4,26 +4,19 @@ alterdata.io
 Na co będziemy zwracać uwagę:
 
 1. dobre praktyki (np. SOLID w miarę możliwości).
-2. Architektura i projekt rozwiązania: Logiczny podział na komponenty, przemyślana struktura.
-3. Testy: Pokrycie kodu testami (jednostkowymi, integracyjnymi) jest bardzo ważne. Użyj pytest.
-4. Obsługa błędów i przypadków brzegowych: Jak Twoje rozwiązanie radzi sobie z nieoczekiwanymi danymi lub sytuacjami.
-5. Dokumentacja: Krótki opis rozwiązania w pliku README.md (jak uruchomić, jakie decyzje projektowe podjąłeś, ewentualne kompromisy).
+2. Testy: Pokrycie kodu testami (jednostkowymi, integracyjnymi) jest bardzo ważne. Użyj pytest.
+3. Obsługa błędów i przypadków brzegowych: Jak Twoje rozwiązanie radzi sobie z nieoczekiwanymi danymi lub sytuacjami.
+4. Dokumentacja: Krótki opis rozwiązania w pliku README.md (jak uruchomić, jakie decyzje projektowe podjąłeś, ewentualne kompromisy).
 
 Wymagania techniczne:
 
 
-1. ORM: SQLAlchemy (dla FastAPI).
-2. Testy: pytest.
+1. Testy: pytest.
 
 ZADANIE : System Przetwarzania i Agregacji Danych o Transakcjach
 - Kontekst: Firma Z analizuje duże ilości danych transakcyjnych pochodzących z różnych systemów. Potrzebujemy narzędzia backendowego, które pozwoli na importowanie danych o transakcjach, ich walidację, proste przetwarzanie oraz udostępnianie zagregowanych wyników poprzez API.
 
 Wymagania:
-1. Import Danych:
-- Zaimplementuj endpoint API (POST /transactions/upload), który akceptuje plik CSV z danymi transakcyjnymi.
-- Format CSV: transaction_id (UUID), timestamp (ISO 8601), amount (liczba zmiennoprzecinkowa), currency (np. PLN, EUR, USD), customer_id (UUID), product_id (UUID), quantity (liczba całkowita).
-- Dane powinny być zwalidowane (np. poprawność formatu UUID, daty, typy liczbowe, niepuste wartości dla wymaganych pól). Niepoprawne wiersze powinny być logowane/raportowane, ale nie powinny blokować przetwarzania poprawnych.
-- Po walidacji, dane powinny być zapisane w relacyjnej bazie danych. Zaprojektuj odpowiedni schemat bazy.
 
 2. API do Pobierania Danych:
 - Zaimplementuj endpoint API (GET /transactions) do pobierania listy transakcji z możliwością paginacji oraz filtrowania po customer_id i product_id.

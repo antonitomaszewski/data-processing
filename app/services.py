@@ -1,245 +1,158 @@
-import decimal
+import csv
+import io
 import logging
+import uuid
 from datetime import datetime
-from decimal import Decimal
-from io import BytesIO
-from uuid import UUID
 
-import pandas as pd
-from fastapi import UploadFile
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.constants import CurrencyEnum
+from app.constants import COLUMNS, CurrencyEnum
 from app.models import Transaction
 from app.schemas import TransactionCreate, UploadResponse
 
 logger = logging.getLogger(__name__)
 
 
-class CSVProcessor:
-    BATCH_SIZE = 1000
-    REQUIRED_COLUMNS = [
-        "transaction_id",
-        "timestamp",
-        "amount",
-        "currency",
-        "customer_id",
-        "product_id",
-        "quantity",
-    ]
+class RowProcessor:
+    def __init__(self, columns):
+        self.columns = columns
+        self.errors = []
 
-    def __init__(self, db_session: Session):
-        self.db = db_session
+    def is_valid(self):
+        if not self.columns or len(self.columns) < 7:
+            self.errors.append("number of columns")
 
-    def process_csv_file(self, file: UploadFile) -> UploadResponse:
-        processed_count = 0
-        errors = []
-        warnings = []
-
-        try:
-            chunk_iter = pd.read_csv(
-                BytesIO(file.file.read()), chunksize=self.BATCH_SIZE, dtype=str
-            )
-
-            for chunk_num, chunk in enumerate(chunk_iter):
-                logger.info(f"Processing chunk {chunk_num + 1}")
-
-                chunk_errors = self._validate_chunk_structure(chunk, chunk_num)
-                if chunk_errors:
-                    errors.extend(chunk_errors)
-                    continue
-
-                (
-                    valid_transactions,
-                    chunk_errors,
-                ) = self._validate_and_convert_chunk(chunk, chunk_num)
-                errors.extend(chunk_errors)
-
-                if valid_transactions:
-                    saved_count, chunk_warnings = self._save_transactions(
-                        valid_transactions
-                    )
-                    processed_count += saved_count
-                    warnings.extend(chunk_warnings)
-
-        except Exception as e:
-            logger.error(f"Error processing CSV file: {str(e)}")
-            errors.append(f"File processing error: {str(e)}")
-
-        finally:
-            file.file.seek(0)
-
-        total_errors = len(errors)
-        total_warnings = len(warnings)
-
-        if processed_count == 0 and total_errors > 0:
-            message = "No valid transactions were processed due to errors"
-        elif total_errors == 0 and total_warnings == 0:
-            message = f"Successfully processed {processed_count} transactions"
-        else:
-            message = f"""Processed {processed_count} transactions with
-              {total_errors} errors and {total_warnings} warnings"""
-
-        return UploadResponse(
-            message=message,
-            processed_count=processed_count,
-            error_count=total_errors,
-            errors=errors,
-            warnings=warnings,
+        return (
+            len(self.columns) == 7
+            and self.validate_transaction_id()
+            and self.validate_timestamp()
+            and self.validate_amount()
+            and self.validate_currency()
+            and self.validate_customer_id()
+            and self.validate_product_id()
+            and self.validate_quantity()
         )
 
-    def _validate_chunk_structure(
-        self, chunk: pd.DataFrame, chunk_num: int
-    ) -> list[str]:
-        errors = []
+    def validate_transaction_id(self):
+        if self._is_valid_uuid(self.columns[0]):
+            return True
+        self.errors.append(f"transaction_id: {self.columns[0]}")
+        return False
 
-        missing_columns = set(self.REQUIRED_COLUMNS) - set(chunk.columns)
-        if missing_columns:
-            errors.append(
-                f"""Chunk {chunk_num + 1}: Missing
-                required columns: {', '.join(missing_columns)}"""
-            )
-
-        return errors
-
-    def _validate_and_convert_chunk(
-        self, chunk: pd.DataFrame, chunk_num: int
-    ) -> tuple[list[TransactionCreate], list[str]]:
-        valid_transactions = []
-        errors = []
-
-        for idx, row in chunk.iterrows():
-            global_row_num = chunk_num * self.BATCH_SIZE + idx + 1
-
-            try:
-                transaction = self._validate_and_convert_row(
-                    row, global_row_num
-                )
-                if transaction:
-                    valid_transactions.append(transaction)
-            except Exception as e:
-                errors.append(f"Row {global_row_num}: {str(e)}")
-
-        return valid_transactions, errors
-
-    def _validate_and_convert_row(
-        self, row: pd.Series, row_num: int
-    ) -> TransactionCreate | None:
-        if row.isnull().any():
-            null_columns = row[row.isnull()].index.tolist()
-            raise ValueError(
-                f"Empty values in columns: {', '.join(null_columns)}"
-            )
-
+    def validate_timestamp(self):
         try:
-            transaction_id = UUID(str(row["transaction_id"]).strip())
-        except (ValueError, TypeError):
-            raise ValueError(
-                f"Invalid transaction_id format: {row['transaction_id']}"
-            )
-
-        try:
-            timestamp_str = str(row["timestamp"]).strip()
-            if timestamp_str.endswith("Z"):
-                timestamp_str = timestamp_str[:-1] + "+00:00"
-            timestamp = datetime.fromisoformat(timestamp_str)
-        except (ValueError, TypeError):
-            raise ValueError(f"Invalid timestamp format: {row['timestamp']}")
-
-        try:
-            amount = Decimal(str(row["amount"]).strip())
-            if amount <= 0:
-                raise ValueError(f"Amount must be positive: {amount}")
-        except (ValueError, TypeError, decimal.InvalidOperation):
-            raise ValueError(f"Invalid amount format: {row['amount']}")
-
-        try:
-            currency = CurrencyEnum(str(row["currency"]).strip().upper())
+            datetime.fromisoformat(self.columns[1])
+            return True
         except ValueError:
-            valid_currencies = [c.value for c in CurrencyEnum]
-            raise ValueError(
-                f"""Invalid currency: {row['currency']}.
-                  Valid currencies: {', '.join(valid_currencies)}"""
-            )
+            self.errors.append(f"timestamp: {self.columns[1]}")
+            return False
 
+    def validate_amount(self):
         try:
-            customer_id = UUID(str(row["customer_id"]).strip())
-        except (ValueError, TypeError):
-            raise ValueError(
-                f"Invalid customer_id format: {row['customer_id']}"
-            )
+            if float(self.columns[2]) > 0:
+                return True
+            else:
+                self.errors.append(f"amount: {self.columns[2]}")
+                return False
+        except ValueError:
+            self.errors.append(f"amount: {self.columns[2]}")
+            return False
 
+    def validate_currency(self):
         try:
-            product_id = UUID(str(row["product_id"]).strip())
-        except (ValueError, TypeError):
-            raise ValueError(f"Invalid product_id format: {row['product_id']}")
+            CurrencyEnum(self.columns[3])
+            return True
+        except ValueError:
+            self.errors.append(f"currency: {self.columns[3]}")
+            return False
 
+    def validate_customer_id(self):
+        if self._is_valid_uuid(self.columns[4]):
+            return True
+        self.errors.append(f"customer_id: {self.columns[4]}")
+        return False
+
+    def validate_product_id(self):
+        if self._is_valid_uuid(self.columns[5]):
+            return True
+        self.errors.append(f"product_id: {self.columns[5]}")
+        return False
+
+    def validate_quantity(self):
         try:
-            quantity = int(str(row["quantity"]).strip())
-            if quantity <= 0:
-                raise ValueError(f"Quantity must be positive: {quantity}")
-        except (ValueError, TypeError):
-            raise ValueError(f"Invalid quantity format: {row['quantity']}")
+            if int(self.columns[6]) > 0:
+                return True
+            else:
+                self.errors.append(f"quantity: {self.columns[6]}")
+                return False
+        except ValueError:
+            self.errors.append(f"quantity: {self.columns[6]}")
+            return False
 
-        return TransactionCreate(
-            transaction_id=transaction_id,
-            timestamp=timestamp,
-            amount=amount,
-            currency=currency,
-            customer_id=customer_id,
-            product_id=product_id,
-            quantity=quantity,
+    def _is_valid_uuid(self, value):
+        try:
+            uuid.UUID(value)
+            return True
+        except ValueError:
+            return False
+
+    def save(self, db):
+        transaction = TransactionCreate(
+            transaction_id=self.columns[0],
+            timestamp=self.columns[1],
+            amount=self.columns[2],
+            currency=self.columns[3],
+            customer_id=self.columns[4],
+            product_id=self.columns[5],
+            quantity=self.columns[6],
         )
 
-    def _save_transactions(
-        self, transactions: list[TransactionCreate]
-    ) -> tuple[int, list[str]]:
-        saved_count = 0
-        warnings = []
-
-        for transaction in transactions:
-            try:
-                db_transaction = Transaction(
-                    transaction_id=transaction.transaction_id,
-                    timestamp=transaction.timestamp,
-                    amount=transaction.amount,
-                    currency=transaction.currency,
-                    customer_id=transaction.customer_id,
-                    product_id=transaction.product_id,
-                    quantity=transaction.quantity,
-                )
-
-                self.db.add(db_transaction)
-                self.db.flush()
-                saved_count += 1
-
-            except IntegrityError as e:
-                self.db.rollback()
-                if (
-                    "unique constraint" in str(e).lower()
-                    and "transaction_id" in str(e).lower()
-                ):
-                    warnings.append(
-                        f"""Duplicate transaction_id:
-                          {transaction.transaction_id}"""
-                    )
-                else:
-                    warnings.append(
-                        f"""Database error for transaction
-                          {transaction.transaction_id}: {str(e)}"""
-                    )
-                logger.warning(
-                    f"""Integrity error for transaction
-                      {transaction.transaction_id}: {str(e)}"""
-                )
-
+        db_transaction = Transaction(**transaction.dict())
         try:
-            self.db.commit()
-            logger.info(f"Successfully saved {saved_count} transactions")
-        except Exception as e:
-            self.db.rollback()
-            logger.error(f"Error committing transactions: {str(e)}")
-            raise
+            db.add(db_transaction)
+            db.commit()
+        except IntegrityError:
+            self.errors.append(
+                f"Integrity error for transaction {self.columns[0]}"
+            )
+            db.rollback()
 
-        return saved_count, warnings
+
+class CSVProcessor:
+    def __init__(self, db_session: Session):
+        self.errors = []
+        self.db = db_session
+        self.processed_count = 0
+        self.total_errors = 0
+        self.message = "File processed successfully"
+
+    def process_file(self, file) -> UploadResponse:
+        contents = file.file.read()
+        decoded = contents.decode("utf-8")
+        reader = csv.reader(io.StringIO(decoded))
+        for i, row_data in enumerate(reader):
+            normalized = tuple(col.strip().lower() for col in row_data)
+            expected = tuple(col.lower() for col in COLUMNS)
+            if i == 0 and normalized != expected:
+                logger.info(row_data)
+                logger.info(COLUMNS)
+                self.errors.append(f"Invalid CSV header: {row_data}")
+                break
+            elif i != 0:
+                self.process_row(i, row_data)
+        return UploadResponse(
+            message=self.message,
+            processed_count=self.processed_count,
+            error_count=self.total_errors,
+            errors=self.errors,
+        )
+
+    def process_row(self, i, row_data):
+        row = RowProcessor(row_data)
+        if row.is_valid():
+            row.save(self.db)
+        if row.errors:
+            self.total_errors += 1
+            self.errors.append(f'Row {i} errors: {",".join(row.errors)}')
+        self.processed_count

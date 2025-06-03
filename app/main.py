@@ -44,7 +44,7 @@ async def health_check():
 
 
 @app.post("/transactions/upload", response_model=UploadResponse)
-async def upload_transactions(
+def upload_transactions(
     file: UploadFile = File(...), db: Session = Depends(get_db)
 ) -> UploadResponse:
     if file.content_type not in ["text/csv", "application/csv"]:
@@ -59,7 +59,7 @@ async def upload_transactions(
 
     try:
         processor = CSVProcessor(db)
-        result = processor.process_csv_file(file)
+        result = processor.process_file(file)
         return result
 
     except Exception as e:
