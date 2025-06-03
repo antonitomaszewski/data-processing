@@ -9,6 +9,7 @@ from app.config import settings
 from app.database import get_db, init_db
 from app.schemas import (
     CustomerSummaryResponse,
+    ProductSummaryResponse,
     TransactionListResponse,
     TransactionResponse,
     UploadResponse,
@@ -143,19 +144,21 @@ async def get_customer_summary(
     return summary
 
 
-@app.get("/reports/product-summary/{product_id}")
-async def get_product_summary(product_id: str):
-    return {
-        "message": "Product summary endpoint - dummy implementation",
-        "product_id": product_id,
-        "summary": {
-            "total_transactions": 0,
-            "total_amount_pln": 0.0,
-            "unique_customers": 0,
-            "currencies_used": [],
-            "date_range": None,
-        },
-    }
+@app.get(
+    "/reports/product-summary/{product_id}",
+    response_model=ProductSummaryResponse,
+)
+async def get_product_summary(product_id: str, db: Session = Depends(get_db)):
+    if not services.is_valid_uuid(product_id):
+        raise HTTPException(
+            status_code=400, detail="Invalid product_id format"
+        )
+
+    summary = services.get_product_summary(db, product_id)
+    if not summary:
+        # jak nie ma transakcji to i nie ma produktu
+        raise HTTPException(status_code=404, detail="Product not found")
+    return summary
 
 
 if __name__ == "__main__":

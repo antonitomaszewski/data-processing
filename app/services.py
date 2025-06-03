@@ -4,6 +4,7 @@ import logging
 import uuid
 from datetime import datetime
 
+from sqlalchemy import distinct, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -12,6 +13,7 @@ import app.utils as utils
 from app.models import Transaction
 from app.schemas import (
     CustomerSummaryResponse,
+    ProductSummaryResponse,
     TransactionCreate,
     TransactionResponse,
     UploadResponse,
@@ -231,4 +233,42 @@ def get_customer_summary(
         total_amount_pln=total_pln,
         unique_products=unique_products,
         last_transaction_date=last_date,
+    )
+
+
+def get_product_summary(
+    db: Session, product_id: str
+) -> ProductSummaryResponse:
+    transactions = (
+        db.query(Transaction)
+        .filter(Transaction.product_id == product_id)
+        .all()
+    )
+
+    if not transactions:
+        return None
+
+    total_quantity = (
+        db.query(func.sum(Transaction.quantity))
+        .filter(Transaction.product_id == product_id)
+        .scalar()
+        or 0
+    )
+
+    total_pln = utils.format_currency_amount(
+        sum(utils.convert_to_pln(t.amount, t.currency) for t in transactions)
+    )
+
+    unique_customers = (
+        db.query(distinct(Transaction.customer_id))
+        .filter(Transaction.product_id == product_id)
+        .all()
+    )
+    unique_customers = [row[0] for row in unique_customers]
+
+    return ProductSummaryResponse(
+        product_id=product_id,
+        total_quantity_sold=total_quantity,
+        total_revenue_pln=total_pln,
+        unique_customers=unique_customers,
     )
