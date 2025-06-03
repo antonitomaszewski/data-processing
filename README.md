@@ -19,11 +19,6 @@ ZADANIE : System Przetwarzania i Agregacji Danych o Transakcjach
 Wymagania:
 
 1. Agregacja Danych:
-- Zaimplementuj endpoint API (GET /reports/customer-summary/{customer_id}), który zwróci podsumowanie dla danego klienta:
-- Całkowita kwota wydana przez klienta (w PLN – jeśli transakcje są w innych walutach, załóż stały, uproszczony kurs wymiany np. 1 EUR = 4.3 PLN, 1 USD = 4.0 PLN).
-- Liczba unikalnych produktów zakupionych przez klienta.
-- Data ostatniej transakcji klienta.
-- 
 - Zaimplementuj endpoint API (GET /reports/product-summary/{product_id}), który zwróci podsumowanie dla danego produktu:
 --> Całkowita sprzedana ilość produktu.
 --> Całkowity przychód wygenerowany przez produkt (w PLN, jak wyżej).

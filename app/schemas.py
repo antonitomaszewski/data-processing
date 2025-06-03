@@ -10,11 +10,12 @@ from app.constants import CurrencyEnum
 class CustomerSummaryResponse(BaseModel):
     customer_id: UUID
     total_amount_pln: Decimal
-    # sum(amount * exchange_rate for each transaction)
     unique_products: list[UUID]
-    # list(set(product_id for each transaction))
     last_transaction_date: datetime
-    # max(timestamp for each transaction)
+
+    @field_validator("total_amount_pln")
+    def validate_total_amount(cls, v):
+        return round(v, 2)
 
 
 class ProductSummaryResponse(BaseModel):

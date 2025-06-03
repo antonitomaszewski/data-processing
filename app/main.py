@@ -8,6 +8,7 @@ import app.services as services
 from app.config import settings
 from app.database import get_db, init_db
 from app.schemas import (
+    CustomerSummaryResponse,
     TransactionListResponse,
     TransactionResponse,
     UploadResponse,
@@ -123,18 +124,23 @@ async def get_transaction(
     return transaction
 
 
-@app.get("/reports/customer-summary/{customer_id}")
-async def get_customer_summary(customer_id: str):
-    return {
-        "message": "Customer summary endpoint - dummy implementation",
-        "customer_id": customer_id,
-        "summary": {
-            "total_transactions": 0,
-            "total_amount_pln": 0.0,
-            "currencies_used": [],
-            "date_range": None,
-        },
-    }
+@app.get(
+    "/reports/customer-summary/{customer_id}",
+    response_model=CustomerSummaryResponse,
+)
+async def get_customer_summary(
+    customer_id: str, db: Session = Depends(get_db)
+):
+    if not services.is_valid_uuid(customer_id):
+        raise HTTPException(
+            status_code=400, detail="Invalid customer_id format"
+        )
+
+    summary = services.get_customer_summary(db, customer_id)
+    if not summary:
+        # jak nie ma transakcji to i nie ma klienta
+        raise HTTPException(status_code=404, detail="Customer not found")
+    return summary
 
 
 @app.get("/reports/product-summary/{product_id}")

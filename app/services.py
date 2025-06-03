@@ -7,9 +7,15 @@ from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.constants import COLUMNS, CurrencyEnum
+import app.constants as constants
+import app.utils as utils
 from app.models import Transaction
-from app.schemas import TransactionCreate, TransactionResponse, UploadResponse
+from app.schemas import (
+    CustomerSummaryResponse,
+    TransactionCreate,
+    TransactionResponse,
+    UploadResponse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +75,7 @@ class RowProcessor:
 
     def validate_currency(self):
         try:
-            CurrencyEnum(self.columns[3])
+            constants.CurrencyEnum(self.columns[3])
             return True
         except ValueError:
             self.errors.append(f"currency: {self.columns[3]}")
@@ -137,10 +143,8 @@ class CSVProcessor:
         reader = csv.reader(io.StringIO(decoded))
         for i, row_data in enumerate(reader):
             normalized = tuple(col.strip().lower() for col in row_data)
-            expected = tuple(col.lower() for col in COLUMNS)
+            expected = tuple(col.lower() for col in constants.COLUMNS)
             if i == 0 and normalized != expected:
-                logger.info(row_data)
-                logger.info(COLUMNS)
                 self.errors.append(f"Invalid CSV header: {row_data}")
                 break
             elif i != 0:
@@ -201,5 +205,30 @@ def get_transaction_by_id(
     )
     if not transaction:
         return None
-        # raise HTTPException(status_code=404, detail="Transaction not found")
     return TransactionResponse.from_orm(transaction)
+
+
+def get_customer_summary(
+    db: Session, customer_id: str
+) -> CustomerSummaryResponse:
+    transactions = (
+        db.query(Transaction)
+        .filter(Transaction.customer_id == customer_id)
+        .all()
+    )
+
+    if not transactions:
+        return None
+
+    total_pln = utils.format_currency_amount(
+        sum(utils.convert_to_pln(t.amount, t.currency) for t in transactions)
+    )
+    unique_products = list(set(t.product_id for t in transactions))
+    last_date = max(t.timestamp for t in transactions)
+
+    return CustomerSummaryResponse(
+        customer_id=customer_id,
+        total_amount_pln=total_pln,
+        unique_products=unique_products,
+        last_transaction_date=last_date,
+    )
