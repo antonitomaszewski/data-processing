@@ -142,6 +142,7 @@ class CSVProcessor:
             normalized = tuple(col.strip().lower() for col in row_data)
             if i == 0 and normalized != constants.COLUMNS:
                 self.errors.append(f"Invalid CSV header: {row_data}")
+                self.total_errors += 1
                 break
             elif i != 0:
                 self.process_row(i, row_data)
@@ -194,6 +195,7 @@ def get_transactions(
 def get_transaction_by_id(
     db: Session, transaction_id: str
 ) -> TransactionResponse | None:
+    # dodać walidację UUID
     transaction = (
         db.query(Transaction)
         .filter(Transaction.transaction_id == transaction_id)

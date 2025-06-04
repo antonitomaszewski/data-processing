@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+import pytest
+
 from app.constants import CurrencyEnum
 from app.utils import convert_to_pln, format_currency_amount
 
@@ -34,3 +36,11 @@ class TestFormatCurrencyAmount:
     def test_format_float_input(self):
         result = format_currency_amount(123.456)
         assert result == Decimal("123.46")
+
+    def test_convert_to_pln_unsupported_currency(self):
+        with pytest.raises(ValueError, match="Unsupported currency"):
+            convert_to_pln(Decimal("100"), "GBP")
+
+    def test_convert_to_pln_none_currency(self):
+        with pytest.raises(ValueError):
+            convert_to_pln(Decimal("100"), None)

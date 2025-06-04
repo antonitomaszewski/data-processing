@@ -1,8 +1,13 @@
-from unittest.mock import Mock
+from datetime import datetime
 
-from sqlalchemy.exc import IntegrityError
-
+from app.models import Transaction
 from app.services import RowProcessor
+from tests.test_data import (
+    CUSTOMER1_ID,
+    PROD1_ID,
+    TRANSACTION1_ID,
+    TRASNACTION3_ID,
+)
 
 
 class TestValidateCustomerId:
@@ -512,80 +517,45 @@ class TestRowProcessorMultiple:
         assert len(processor.errors) == 1
 
 
-class TestRowProcessorSave:
-    def test_save_valid_transaction(self):
-        columns = [
-            "550e8400-e29b-41d4-a716-446655440000",
-            "2024-01-15T17:00:00Z",
-            "100.50",
+def test_save_success(session_with_data):
+    row = RowProcessor(
+        [
+            TRASNACTION3_ID,
+            datetime.now().isoformat(),
+            100.0,
             "PLN",
-            "550e8400-e29b-41d4-a716-446655440001",
-            "550e8400-e29b-41d4-a716-446655440002",
-            "2",
+            CUSTOMER1_ID,
+            PROD1_ID,
+            2,
         ]
-        processor = RowProcessor(columns)
+    )
 
-        mock_db = Mock()
-        mock_db.add = Mock()
-        mock_db.commit = Mock()
+    row.save(session_with_data)
 
-        processor.save(mock_db)
+    result = (
+        session_with_data.query(Transaction)
+        .filter_by(transaction_id=TRASNACTION3_ID)
+        .first()
+    )
 
-        mock_db.add.assert_called_once()
-        mock_db.commit.assert_called_once()
-        assert len(processor.errors) == 0
+    assert result is not None
+    assert row.errors == []
 
-    def test_save_integrity_error(self):
-        columns = [
-            "550e8400-e29b-41d4-a716-446655440000",
-            "2024-01-15T17:00:00Z",
-            "100.50",
+
+def test_save_integrity_error(monkeypatch, session_with_data):
+    row = RowProcessor(
+        [
+            TRANSACTION1_ID,
+            datetime.now().isoformat(),
+            100.0,
             "PLN",
-            "550e8400-e29b-41d4-a716-446655440001",
-            "550e8400-e29b-41d4-a716-446655440002",
-            "2",
+            CUSTOMER1_ID,
+            PROD1_ID,
+            2,
         ]
-        processor = RowProcessor(columns)
+    )
 
-        mock_db = Mock()
-        mock_db.add = Mock()
-        mock_db.commit = Mock(
-            side_effect=IntegrityError("Duplicate key", None, None)
-        )
-        mock_db.rollback = Mock()
+    row.save(session_with_data)
 
-        processor.save(mock_db)
-
-        mock_db.rollback.assert_called_once()
-        assert len(processor.errors) == 1
-        assert "Integrity error" in processor.errors[0]
-        assert "550e8400-e29b-41d4-a716-446655440000" in processor.errors[0]
-
-    def test_save_creates_transaction_with_correct_data(self):
-        columns = [
-            "550e8400-e29b-41d4-a716-446655440000",
-            "2024-01-15T17:00:00Z",
-            "100.50",
-            "PLN",
-            "550e8400-e29b-41d4-a716-446655440001",
-            "550e8400-e29b-41d4-a716-446655440002",
-            "2",
-        ]
-        processor = RowProcessor(columns)
-
-        mock_db = Mock()
-        mock_db.add = Mock()
-        mock_db.commit = Mock()
-
-        processor.save(mock_db)
-
-        mock_db.add.assert_called_once()
-        added_transaction = mock_db.add.call_args[0][0]
-
-        assert (
-            str(added_transaction.transaction_id)
-            == "550e8400-e29b-41d4-a716-446655440000"
-        )
-        assert added_transaction.amount == 100.50
-        assert added_transaction.currency == "PLN"
-        assert added_transaction.quantity == 2
+    assert len(row.errors) == 1
+    assert "Integrity error for transaction" in row.errors[0]

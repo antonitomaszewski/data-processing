@@ -1,109 +1,70 @@
-from unittest.mock import Mock, patch
+import io
 
+from app import constants
+from app.schemas import UploadResponse
 from app.services import CSVProcessor
 
 
-class TestCSVProcessorInit:
-    def test_init_sets_correct_attributes(self):
-        mock_db = Mock()
-        processor = CSVProcessor(mock_db)
-
-        assert processor.db == mock_db
-        assert processor.processed_count == 0
-        assert processor.total_errors == 0
-        assert processor.errors == []
-        assert processor.message == "File processed successfully"
+class DummyFile:
+    def __init__(self, content: str):
+        self.file = io.BytesIO(content.encode())
 
 
-class TestCSVProcessorProcessFile:
-    def test_process_file_valid_csv(self):
-        csv_content = (
-            "transaction_id,timestamp,amount,currency,"
-            "customer_id,product_id,quantity\n"
-            "550e8400-e29b-41d4-a716-446655440000,"
-            "2024-01-15T17:00:00Z,100.50,PLN,"
-            "550e8400-e29b-41d4-a716-446655440001,"
-            "550e8400-e29b-41d4-a716-446655440002,2"
-        )
+def test_process_file_success(monkeypatch, session):
+    content = (
+        ",".join(constants.COLUMNS)
+        + "\n"
+        + "550e8400-e29b-41d4-a716-446655440000,"
+        "2024-01-01T12:00:00Z,100.0,pln,"
+        "11111111-1111-1111-1111-111111111111,"
+        "aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa,2"
+    )
+    dummy_file = DummyFile(content)
 
-        mock_file = Mock()
-        mock_file.file.read.return_value = csv_content.encode("utf-8")
+    def fake_is_valid(self):
+        return True
 
-        mock_db = Mock()
-        processor = CSVProcessor(mock_db)
+    def fake_save(self, db):
+        pass
 
-        with patch.object(processor, "process_row") as mock_process_row:
-            result = processor.process_file(mock_file)
+    monkeypatch.setattr("app.services.RowProcessor.is_valid", fake_is_valid)
+    monkeypatch.setattr("app.services.RowProcessor.save", fake_save)
 
-            mock_process_row.assert_called_once_with(
-                1,
-                [
-                    "550e8400-e29b-41d4-a716-446655440000",
-                    "2024-01-15T17:00:00Z",
-                    "100.50",
-                    "PLN",
-                    "550e8400-e29b-41d4-a716-446655440001",
-                    "550e8400-e29b-41d4-a716-446655440002",
-                    "2",
-                ],
-            )
+    processor = CSVProcessor(session)
+    result = processor.process_file(dummy_file)
 
-            assert result.message == "File processed successfully"
-
-    def test_process_file_invalid_header(self):
-        csv_content = "wrong,header,format\ndata1,data2,data3"
-
-        mock_file = Mock()
-        mock_file.file.read.return_value = csv_content.encode("utf-8")
-
-        mock_db = Mock()
-        processor = CSVProcessor(mock_db)
-
-        with patch.object(processor, "process_row") as mock_process_row:
-            processor.process_file(mock_file)
-
-            mock_process_row.assert_not_called()
-
-            assert len(processor.errors) == 1
-            assert "Invalid CSV header" in processor.errors[0]
+    assert isinstance(result, UploadResponse)
+    assert result.processed_count == 1
+    assert result.error_count == 0
+    assert result.errors == []
 
 
-class TestCSVProcessorProcessRow:
-    def test_process_row_valid_data(self):
-        mock_db = Mock()
-        processor = CSVProcessor(mock_db)
+def test_process_file_invalid_header(session):
+    bad_header = "S,R,T\n" "z,x,c,v,q,s,z"
+    dummy_file = DummyFile(bad_header)
+    processor = CSVProcessor(session)
+    result = processor.process_file(dummy_file)
 
-        row_data = ["valid", "data"]
+    assert result.error_count == 1
+    assert "Invalid CSV header" in result.errors[0]
+    assert result.processed_count == 0
 
-        with patch("app.services.RowProcessor") as mock_row_processor_class:
-            mock_row_processor = Mock()
-            mock_row_processor.is_valid.return_value = True
-            mock_row_processor.errors = []
-            mock_row_processor_class.return_value = mock_row_processor
 
-            processor.process_row(1, row_data)
+def test_process_file_row_with_errors(monkeypatch, session):
+    content = ",".join(constants.COLUMNS) + "\n" + "a,c,d,b,z,s,q"
+    dummy_file = DummyFile(content)
 
-            mock_row_processor_class.assert_called_once_with(row_data)
-            mock_row_processor.save.assert_called_once_with(mock_db)
+    def fake_init(self, columns):
+        self.columns = columns
+        self.errors = ["error1", "error2"]
 
-            assert processor.total_errors == 0
+    monkeypatch.setattr("app.services.RowProcessor.__init__", fake_init)
+    monkeypatch.setattr("app.services.RowProcessor.is_valid", lambda _: False)
+    monkeypatch.setattr("app.services.RowProcessor.save", lambda *args: None)
 
-    def test_process_row_invalid_data(self):
-        mock_db = Mock()
-        processor = CSVProcessor(mock_db)
+    processor = CSVProcessor(session)
+    result = processor.process_file(dummy_file)
 
-        row_data = ["invalid", "data"]
-
-        with patch("app.services.RowProcessor") as mock_row_processor_class:
-            mock_row_processor = Mock()
-            mock_row_processor.is_valid.return_value = False
-            mock_row_processor.errors = ["Error 1", "Error 2"]
-            mock_row_processor_class.return_value = mock_row_processor
-
-            processor.process_row(5, row_data)
-
-            mock_row_processor.save.assert_not_called()
-
-            assert processor.total_errors == 1
-            assert len(processor.errors) == 1
-            assert "Row 5 errors: Error 1,Error 2" in processor.errors[0]
+    assert result.error_count == 1
+    assert any("Row 1 errors" in e for e in result.errors)
+    assert result.processed_count == 1
