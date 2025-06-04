@@ -159,7 +159,7 @@ class CSVProcessor:
         if row.errors:
             self.total_errors += 1
             self.errors.append(f'Row {i} errors: {",".join(row.errors)}')
-        self.processed_count
+        self.processed_count += 1
 
 
 def get_transactions(
