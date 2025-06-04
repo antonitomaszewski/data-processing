@@ -28,12 +28,15 @@ class RowProcessor:
         self.errors = []
 
     def is_valid(self):
-        if not self.columns or len(self.columns) < 7:
-            self.errors.append("number of columns")
+        if not self.columns or len(self.columns) != 7:
+            self.errors.append(
+                f"""number of columns:
+                {len(self.columns) if self.columns else 0}"""
+            )
+            return False
 
         return (
-            len(self.columns) == 7
-            and self.validate_transaction_id()
+            self.validate_transaction_id()
             and self.validate_timestamp()
             and self.validate_amount()
             and self.validate_currency()
