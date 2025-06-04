@@ -4,7 +4,7 @@ from sqlalchemy import Column, DateTime
 from sqlalchemy import Enum as SqlEnum
 from sqlalchemy import Integer, Numeric
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from app.constants import CurrencyEnum
 
