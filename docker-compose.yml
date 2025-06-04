@@ -23,6 +23,7 @@ services:
       - "8000:8000"
     volumes:
       - ./app:/code/app
+      - ./tests:/code/tests
     depends_on:
       db:
         condition: service_healthy

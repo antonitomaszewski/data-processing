@@ -1,3 +1,4 @@
+import uuid
 from decimal import Decimal
 
 from app.constants import EXCHANGE_RATES, CurrencyEnum
@@ -21,3 +22,12 @@ def format_currency_amount(
         amount = Decimal(str(amount))
 
     return amount.quantize(Decimal("0." + "0" * precision))
+
+
+def is_valid_uuid(value: str) -> bool:
+    if value is None:
+        return False
+    try:
+        return str(uuid.UUID(value)) == value.lower()
+    except ValueError:
+        return False

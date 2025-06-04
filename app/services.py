@@ -1,7 +1,6 @@
 import csv
 import io
 import logging
-import uuid
 from datetime import datetime
 
 from sqlalchemy import distinct, func
@@ -18,16 +17,9 @@ from app.schemas import (
     TransactionResponse,
     UploadResponse,
 )
+from app.utils import is_valid_uuid
 
 logger = logging.getLogger(__name__)
-
-
-def is_valid_uuid(value: str) -> bool:
-    try:
-        uuid.UUID(value)
-        return True
-    except ValueError:
-        return False
 
 
 class RowProcessor:
